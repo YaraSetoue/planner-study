@@ -1,0 +1,66 @@
+services:
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: planner-backend
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./backend:/var/www
+    networks:
+      - planner
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: planner-frontend
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    networks:
+      - planner
+
+  nginx:
+    image: nginx:alpine
+    container_name: planner-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./backend:/var/www
+    depends_on:
+      - app
+    networks:
+      - planner
+
+  db:
+    image: mysql:8.0
+    container_name: planner-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: planner
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: planner
+      MYSQL_PASSWORD: planner
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - planner
+
+volumes:
+  db_data:
+
+networks:
+  planner:
+    driver: bridge
